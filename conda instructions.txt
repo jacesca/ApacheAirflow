@@ -1,0 +1,28 @@
+# To create an environment inside the folder
+conda create --prefix ./env python pandas numpy matplotlib scikit-learn jupyter
+
+
+# To activate this environment, use
+conda activate C:\Users\jaces\Documents\certificate\Courses\MachineLearningBootcamp2022\ml_test\env
+
+
+# To deactivate an active environment, use
+conda deactivate
+
+
+# To open Jupyter Notebook
+jupyter notebook
+
+
+# To export the environment we created earlier at /Users/daniel/Desktop/project_1/env as a YAML file called environment.yml we can use the command:
+conda env export --prefix /Users/daniel/Desktop/project_1/env > environment.yml
+conda env export --prefix ./env > environment.yml
+
+conda env export --prefix ../ml-projects/env > environment.yml
+conda env create --prefix ./env --file environment.yml
+
+# To create an environment called env_from_file from a .yml file called environment.yml, you can run the command:
+conda env create --prefix ./env --file environment.yml
+
+# To search available pkg
+conda search scikit-learn --info

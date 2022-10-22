@@ -1,0 +1,266 @@
+To install & configure apache airflow, with postgres and celery
+	copy docker-compose.yaml and .env to materials folder
+	open a terminal and move to that file
+	execute docker-compose up -d
+	go to http://localhost:8080/
+	user: airflow
+	pwd: airflow
+
+	as we have celery, we have flower dashboard --> Monitor and adminstrator service cluster
+	http://localhost:5555/dashboard
+
+To check your docker container
+	docker-compose ps
+		NAME                            COMMAND                  SERVICE             STATUS              	PORTS
+		materials-airflow-init-1        "/bin/bash -c 'funct…"   airflow-init        exited (0)
+		materials-airflow-scheduler-1   "/usr/bin/dumb-init …"   airflow-scheduler   running (healthy)   8080/tcp
+		materials-airflow-triggerer-1   "/usr/bin/dumb-init …"   airflow-triggerer   running (healthy)   8080/tcp
+		materials-airflow-webserver-1   "/usr/bin/dumb-init …"   airflow-webserver   running (healthy)   0.0.0.0:8080->8080/tcp
+		materials-airflow-worker-1      "/usr/bin/dumb-init …"   airflow-worker      running (healthy)   8080/tcp
+		materials-flower-1              "/usr/bin/dumb-init …"   flower              running (healthy)   0.0.0.0:5555->5555/tcp, 8080/tcp
+		materials-postgres-1            "docker-entrypoint.s…"   postgres            running (healthy)   5432/tcp
+		materials-redis-1               "docker-entrypoint.s…"   redis               running (healthy)   6379/tcp
+
+
+To review the log. If a container is not healthy. You can check the logs with 
+	docker logs <materials_name_of_the_container>
+	Ex.
+	docker logs materials-airflow-init-1
+
+
+To stop the docker machine, run the following command in the folder where is .yaml
+	docker-compose down
+	docker-compose down -v
+
+
+To install the library in the local environment and just for coding purposes
+	pip install apache-airflow
+	pip install elasticsearch
+	pip install docker
+
+To looks for more building blocks into apache-airflow (providers)
+	https://registry.astronomer.io/
+		ex. how to install
+			pip install apache-airflow-providers-amazon==6.0.0
+			pip install apache-airflow-providers-postgres==5.2.2
+			pip install apache-airflow-providers-docker
+
+
+To add a conecction
+	1) Go to menu: admin --> connections
+	2) Click on "+" button
+	3) Fill out:
+	Connection --> postgres
+		Connection Id: postgres
+		Connection Type: Postgres
+		Host: postgres
+		Login: airflow
+		Password: airflow
+		Port 5432
+
+	Connection --> http: Create the connection user_api
+		Connection Id: user_api
+		Connection type: HTTP
+		Host: https://randomuser.me/
+
+
+To test a new dag
+	(1) Check your docker containers
+	$ docker-compose ps
+		NAME                            COMMAND                  SERVICE             STATUS              PORTS
+		materials-airflow-init-1        "/bin/bash -c 'funct…"   airflow-init        exited (0)
+		materials-airflow-scheduler-1   "/usr/bin/dumb-init …"   airflow-scheduler   running (healthy)   8080/tcp
+		materials-airflow-triggerer-1   "/usr/bin/dumb-init …"   airflow-triggerer   running (healthy)   8080/tcp
+		materials-airflow-webserver-1   "/usr/bin/dumb-init …"   airflow-webserver   running (healthy)   0.0.0.0:8080->8080/tcp
+		materials-airflow-worker-1      "/usr/bin/dumb-init …"   airflow-worker      running (healthy)   8080/tcp
+		materials-flower-1              "/usr/bin/dumb-init …"   flower              running (healthy)   0.0.0.0:5555->5555/tcp, 8080/tcp
+		materials-postgres-1            "docker-entrypoint.s…"   postgres            running (healthy)   5432/tcp
+		materials-redis-1               "docker-entrypoint.s…"   redis               running (healthy)   6379/tcp
+
+	(2) Enter to the scheduler
+	$ docker exec -it materials-airflow-scheduler-1 /bin/bash
+		(You are inside the docker container --> irflow@b9ec22d35840:/opt/airflow$)
+	
+	(3) Check the available commands with airflow	(To show the avialble commands)
+		airflow -h
+
+	(4) Test the task you need (To test the dag task)
+		airflow tasks test user_processing create_table 2022-01-01
+
+	(5) Exit (To exit)
+		exit
+
+To chech if a file was saved in the location you set
+	(1) Check your docker containers
+	$ docker-compose ps
+
+	(2) Enter to the worker
+	$ docker exec -it materials-airflow-worker-1 /bin/bash
+
+	(3) Chec the content of the location (To review the saved file)
+		ls /tmp/
+			--> processed_user.csv  pymp-eq4ma53i  tmp8vnu40h4
+	
+	(4) Exit
+		exit
+
+
+To run sql command in the postgress server you installed with apache-airflow
+	(1) Check your docker containers
+	$ docker-compose ps
+
+	(2) Enter to the postgres terminal
+	$ docker exec -it materials-postgres-1 /bin/bash
+
+	(3) Open a session with postgres (To run postgres)
+		psql -Uairflow
+	
+	(4) Run de sql
+			SELECT * FROM users;
+				Result:
+				 firstname | lastname | country |     username     | password |           email
+				-----------+----------+---------+------------------+----------+----------------------------
+				 Joshua    | Riviere  | France  | purplepeacock579 | helene   | joshua.riviere@example.com
+				(1 row)
+
+	(5) Exit of the postgres session
+			exit
+
+	(6) Exit of the terminal
+		exit
+
+
+To access the configuration file of the apache airflow (p.e. you want to change the executor)
+	(1) Check your docker containers
+	$ docker-compose ps
+
+	(2) Copy the config file into your location
+	$ docker cp materials-airflow-scheduler-1:/opt/airflow/airflow.cfg .
+
+	Note, to modify the airflow configuration, you need to apply the changes to the yaml file
+	and restart your docker container to apply the changes.
+
+
+To restart Docker (Not working in the current version)
+	$ docker-compose down && docker-compose up -d
+
+
+To add an additional worker
+	(1) Open the yaml file
+	(2) After the airflow-worker, add
+  airflow-worker-2:
+    <<: *airflow-common
+    command: celery worker
+    restart: always
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - 'celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    environment:
+      <<: *airflow-common-env
+      DUMB_INIT_SETSID: 0
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully	
+
+
+To enable Elastic search
+	(1) Run
+	docker-compose -f docker-compose-es.yaml up -d
+
+	(2) To review the docker container
+	docker-compose -f docker-compose-es.yaml ps
+
+	(3) To verify access are ok
+	docker exec -it materials-airflow-scheduler-1 /bin/bash
+		
+	(4) Execute inside
+		curl -X GET 'http://elastic:9200'
+		Result:
+		{
+		  "name" : "4ae337cb5096",
+		  "cluster_name" : "docker-cluster",
+		  "cluster_uuid" : "yzHEbm1WSouUbz5suBBSWA",
+		  "version" : {
+		    "number" : "8.3.3",
+		    "build_flavor" : "default",
+		    "build_type" : "docker",
+		    "build_hash" : "801fed82df74dbe537f89b71b098ccaff88d2c56",
+		    "build_date" : "2022-07-23T19:30:09.227964828Z",
+		    "build_snapshot" : false,
+		    "lucene_version" : "9.2.0",
+		    "minimum_wire_compatibility_version" : "7.17.0",
+		    "minimum_index_compatibility_version" : "7.0.0"
+		  },
+		  "tagline" : "You Know, for Search"
+		}
+	
+	(5) Exit
+		exit
+
+	(6) Create the elastic connection
+		Connection Id: elastic_default
+		Connection type: HTTP
+		Host: elastic
+		Port: 9200
+
+	(7) Install elasticsearch in the environment for coding purposes only
+		pip install elasticsearch
+
+	(8) Create the elastic_hool.py in plugins/hooks/elastic/
+
+	(9) Register the new plugin in airflow
+	* Check te docker container
+	$ docker-compose -f docker-compose-es.yaml ps
+
+	* Enter to the scheduler
+	$ docker exec -it materials-airflow-scheduler-1 /bin/bash
+	
+	
+	* See available plugins
+		airflow plugins
+
+	* Exit
+		exit
+
+	*** Reinstall de docker instance --> Only this
+	$ docker-compose -f docker-compose-es.yaml stop
+	$ docker-compose -f docker-compose-es.yaml up -d
+
+	* Enter to the scheduler
+	$ docker exec -it materials-airflow-scheduler-1 /bin/bash
+	
+	
+	* See available plugins
+		airflow plugins	
+name    | source                                        | hooks
+========+===============================================+=========================
+elastic | $PLUGINS_FOLDER/hooks/elastic/elastic_hook.py | elastic_hook.ElasticHook
+
+
+
+
+		
+A little bit about executors
+	For sequential executor (this uses SQLite): --> This not allow parallelism
+		executor=SequentialExecutor
+		
+	For Local executors --> Doesn't scale very well, limit by the local resources
+		executor=LocalExecutor
+		sql_alchemy_conn=postgresql+psycopg2://<user>:<password>@<host>/<db>
+
+	For Celery executor --> Silver executor, needs redis or rabbit
+		executor=CeleryExecutor
+		sql_alchemy_conn=postgresql+psycopg2://<user>:<password>@<host>/<db>
+		celery_result_backend=postgresql+psycopg2://<user>:<password>@<host>/<db>
+		celery_broker_url=reddis://:@redis:6379/0
+
+
+A little bit about workers
+	For adding/having more workers, you need to run the next command on a given machine
+	airflow celery worker
+	

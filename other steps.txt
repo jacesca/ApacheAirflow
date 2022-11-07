@@ -1,0 +1,23 @@
+***airflow-section-2****
+
+On terminal:
+(1) Go to C:\Users\jaces\Documents\certificate\Courses\AirFlowStart\airflow-materials\airflow-section-2
+(2) run
+	docker build -t airflow-basic .
+(3) run
+	docker run --rm -d -p 8080:8080 airflow-basic
+(4) Stop service. Don't forget to stop your Airflow docker container with the commands
+	docker ps
+
+	Then copy the container id of airflow-basic and execute:
+
+	docker stop <container_id>
+
+
+
+****airflow-section-3****
+(1) Go to C:\Users\jaces\Documents\certificate\Courses\AirFlowStart\airflow-materials\airflow-section-3
+(2) docker build -t hadoop-base docker/hadoop/hadoop-base
+(3) docker build -t hive-base docker/hive/hive-base
+(4) docker build -t spark-base docker/spark/spark-base
+(5) docker-compose up -d --build

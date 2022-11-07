@@ -2,91 +2,84 @@
 Installing Apache Airflow
 
 
-Hi there 👋
-
-It's time to install Apache Airflow. As you are going to see, it's very simple.
-
-
-
 Prerequisites
+	First, make sure you have installed Docker Desktop and Visual Studio. If not, take a look at these links:
+	Get Docker: https://docs.docker.com/get-docker/
+	Get Visual Studio Code: https://code.visualstudio.com/download
+	Docker needs privilege rights to work, make sure you have them.
+	Follow the documentation first
 
-First, make sure you have installed Docker Desktop and Visual Studio. If not, take a look at these links:
-
-Get Docker: https://docs.docker.com/get-docker/
-
-Get Visual Studio Code: https://code.visualstudio.com/download
-
-Docker needs privilege rights to work, make sure you have them.
-
-Follow the documentation first
-If you have troubles to install these tools, here are some videos to help you
-
-Install Docker on Windows 10: https://www.youtube.com/watch?v=lIkxbE_We1I&ab_channel=JamesStormes
-
-Install Docker on Windows 10 with WSL 2: https://www.youtube.com/watch?v=h0Lwtcje-Jo&ab_channel=BeachcastsProgrammingVideos
-
-Install Docker on Windows 11: https://youtu.be/6k1CyA5zYgg?t=249
-
-
+	Install Docker on Windows 10: https://www.youtube.com/watch?v=lIkxbE_We1I&ab_channel=JamesStormes
+	Install Docker on Windows 10 with WSL 2: https://www.youtube.com/watch?v=h0Lwtcje-Jo&ab_channel=BeachcastsProgrammingVideos
+	Install Docker on Windows 11: https://youtu.be/6k1CyA5zYgg?t=249
 
 Install Apache Airflow with Docker
+	Create a folder materials in your Documents
+	In this folder, download the following file: docker compose file --> (saved already) https://airflow.apache.org/docs/apache-airflow/2.3.0/docker-compose.yaml
+	If you right click on the file and save it, you will end up with docker-compose.yaml.txt. Remove the .txt and keep docker-compose.yaml
+	Open your terminal or CMD and go into Documents/materials
+	Open Visual Studio Code by typing the command: code .
+	Right click below docker-compose.yml and create a new file .env (don't forget the dot before env)
+	In this file (.env) add the following lines
+		AIRFLOW_IMAGE_NAME=apache/airflow:2.3.0
+		AIRFLOW_UID=50000
+	and save the file
+	Go at the top bar of Visual Studio Code -> Terminal -> New Terminal
+	In your new terminal at the bottom of Visual Studio Code, type the command docker-compose up -d and hit ENTER
+	You will see many lines scrolled, wait until it's done. Docker is downloading Airflow to run it. It can take up to 5 mins depending on your connection. If Docker raises an error saying that it can't download the docker image, make sure you are not behind a proxy/vpn or corporate network. You may need to use your personal connection to make it work. At the end, you should end up with something like this:
+	Well done, you've just installed Apache Airflow with Docker! 🎉
 
+Open your web browser and go to 
+http://localhost:8080/
+	user: airflow
+	pwd: airflow
 
-
-Create a folder materials in your Documents
-
-In this folder, download the following file: docker compose file --> (saved already) https://airflow.apache.org/docs/apache-airflow/2.3.0/docker-compose.yaml
-
-If you right click on the file and save it, you will end up with docker-compose.yaml.txt. Remove the .txt and keep docker-compose.yaml
-
-Open your terminal or CMD and go into Documents/materials
-
-Open Visual Studio Code by typing the command: code .
-
-You should have something like this
-
-
-Right click below docker-compose.yml and create a new file .env (don't forget the dot before env)
-
-In this file add the following lines
-
-AIRFLOW_IMAGE_NAME=apache/airflow:2.3.0
-AIRFLOW_UID=50000
-and save the file
-
-
-Go at the top bar of Visual Studio Code -> Terminal -> New Terminal
-
-
-In your new terminal at the bottom of Visual Studio Code, type the command docker-compose up -d and hit ENTER
-
-
-You will see many lines scrolled, wait until it's done. Docker is downloading Airflow to run it. It can take up to 5 mins depending on your connection. If Docker raises an error saying that it can't download the docker image, make sure you are not behind a proxy/vpn or corporate network. You may need to use your personal connection to make it work. At the end, you should end up with something like this:
-
-
-Well done, you've just installed Apache Airflow with Docker! 🎉
-
-
-
-Open your web browser and go to localhost:8080
-
+As we have celery, we have flower dashboard --> Monitor and adminstrator service cluster
+	http://localhost:5555/dashboard
 
 Troubleshoots
-If you don't see this page, make sure you have nothing already running on the port 8080
+	If you don't see this page, make sure you have nothing already running on the port 8080
+	Also, go back to your terminal on Visual Studio Code and check your application with docker-compose ps
+	All of your "containers" should be healthy as follow:
+	If a container is not healthy. You can check the logs with docker logs materials_name_of_the_container
+	Try to spot the error; once you fix it, restart Airflow with docker-compose down then docker-compose up -d
+	and wait until your container states move from starting to healthy.
+	If you still have trouble, reach me on the Q/A with your error.
 
-Also, go back to your terminal on Visual Studio Code and check your application with docker-compose ps
-
-All of your "containers" should be healthy as follow:
-
-
-If a container is not healthy. You can check the logs with docker logs materials_name_of_the_container
-
-Try to spot the error; once you fix it, restart Airflow with docker-compose down then docker-compose up -d
-
-and wait until your container states move from starting to healthy.
-
-If you still have trouble, reach me on the Q/A with your error.
+Other links: 
+	Python operator: https://marclamberti.com/blog/airflow-pythonoperator/
 
 
+Definitions:
+* min_file_process_interval
+	Number of seconds after which a DAG file is parsed. The DAG file is parsed every min_file_process_interval number of seconds. Updates to DAGs are reflected after this interval.
 
-Python operator: https://marclamberti.com/blog/airflow-pythonoperator/
+* dag_dir_list_interval
+	How often (in seconds) to scan the DAGs directory for new files. Default to 5 minutes.
+	
+	Those 2 settings tell you that you have to wait up 5 minutes before your DAG gets detected by the scheduler and then it is parsed every 30 seconds by default.
+
+* worker_refresh_interval
+	Number of seconds to wait before refreshing a batch of workers. 30 seconds by default.
+
+	This setting tells you that every 30 seconds, the web server parses for new DAG in your DAG folder.
+
+* parallelism / AIRFLOW__CORE__PARALELISM
+	This defines the maximum number of task instances that can run in Airflow per scheduler. 		By default, you can execute up to 32 tasks at the same time. If you have 2 schedulers: 2 
+	x 32 = 64 tasks.
+	What value to define here depends on the resources you have and the number of schedulers 
+	running.
+
+* max_active_tasks_per_dag / AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG
+	This defines the maximum number of task instances allowed to run concurrently in each 
+	DAG. By default, you can execute up to 16 tasks at the same time for a given DAG across 
+	all DAG Runs.
+
+* max_active_runs_per_dag / AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG
+	This defines the maximum number of active DAG runs per DAG. By default, you can have up 
+	to 16 DAG runs per DAG running at the same time.
+	
+	Concurrency, the parameters you must know!
+	Airflow has several parameters to tune your tasks and DAGs concurrency.	
+	Concurrency defines the number of tasks and DAG Runs that you can execute at the same time 
+	(in parallel)

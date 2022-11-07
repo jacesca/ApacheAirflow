@@ -90,7 +90,7 @@ To test a new dag
 	(5) Exit (To exit)
 		exit
 
-To chech if a file was saved in the location you set
+To check if a file was saved in the location you set
 	(1) Check your docker containers
 	$ docker-compose ps
 
